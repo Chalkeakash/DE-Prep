@@ -52,6 +52,37 @@ A file can appear in bucket 2 and 3 at once if it was staged, then edited again 
 - `git add -u` → stages only already-tracked files (modified + deleted) — skips new/untracked files
 - ⚠️ Caution: `add .` / `-A` will stage everything, including files you don't want in Git (`.env`, credentials, large CSVs) — set up `.gitignore` before using these freely
 
+## `git add` → `git commit` → `git push` (the core daily chronology)
+This is the loop you'll run constantly. Each step does something distinct — don't skip mentally to "push" as if it's one action.
+
+**1. `git add <file>` (or `.` / `-A`)**
+- Moves changes into the **staging area** — a frozen snapshot, not the file itself
+- Local only, nothing saved to history yet
+- Can be undone with `git restore --staged <file>` if you staged the wrong thing
+
+**2. `git commit -m "message"`**
+- Takes whatever is currently staged and saves it **permanently to local history**
+- Each commit = a snapshot + message + timestamp + author, chained to the previous commit
+- Still 100% local — nothing has left your machine yet
+- Commit message discipline matters — this becomes part of your visible portfolio story on GitHub
+
+**3. `git push`**
+- Sends your local commits to the **remote repo** (GitHub)
+- First time pushing a new local branch: `git push -u origin main` (`-u` sets upstream so future pushes can just be `git push`)
+- After upstream is set, `git push` alone is enough
+- If GitHub has commits you don't have locally (e.g., edited README on GitHub directly), push will be rejected — you'd need `git pull` first to sync
+
+**Full everyday flow:**
+```
+git status              # see what changed
+git add .               # stage it
+git status               # confirm what's staged
+git commit -m "message"  # save to local history
+git push                 # send to GitHub
+```
+
+**Mental model:** `add` = pack the box → `commit` = seal and label the box (saved locally) → `push` = ship the box to GitHub (now backed up + visible remotely).
+
 ## Renamed / moved files
 - If a file's path changes (e.g., folder restructured) but content is same, Git shows it as delete (old path) + untracked (new path)
 - `git add -A` followed by `git status` will usually detect this correctly as a **rename**, not a real delete+create
@@ -63,14 +94,42 @@ A file can appear in bucket 2 and 3 at once if it was staged, then edited again 
 - Warning like `LF will be replaced by CRLF` = Git auto-converting endings per `core.autocrlf` setting — harmless, not an error
 - On Windows, files are stored as LF in the repo but checked out as CRLF locally for compatibility
 
-## IDE config files (PyCharm `.idea/`) should NOT be tracked
+## `.gitignore`
+- A plain text file listing patterns of files/folders Git should **never track**, even if you run `git add .`
+- Lives at the repo root, named exactly `.gitignore`
+- Each line = one pattern. Common syntax:
+  - `.idea/` → ignore the whole folder
+  - `*.log` → ignore all files with that extension, anywhere
+  - `data/` → ignore a specific folder
+  - `.env` → ignore a specific file
+  - `!keep_this.csv` → exception, un-ignore a specific file inside an ignored pattern
+
+**Why it matters for DE work specifically:**
+- Credentials/keys (`.env`, `config.json` with secrets) — never belong in Git history, even private repos
+- Large data files (`.csv`, `.parquet` datasets) — bloat repo size, GitHub isn't meant for data storage
+- IDE/OS junk (`.idea/`, `.vscode/`, `.DS_Store`, `__pycache__/`) — machine-specific, not part of the actual project
+
+**Important gotcha:** `.gitignore` only prevents tracking **new** files. If a file was already tracked (committed) before you added it to `.gitignore`, it will keep being tracked. You must explicitly untrack it first:
 ```
 echo ".idea/" >> .gitignore
 git rm -r --cached .idea
 git add .gitignore
 git commit -m "stop tracking IDE config files"
 ```
-Prevents noise (like CRLF warnings on config files) and keeps repo clean of machine-specific settings.
+`git rm -r --cached` removes it from Git's tracking (and future commits) but leaves the actual file untouched on your disk.
+
+**Starter `.gitignore` for a Python/DE repo:**
+```
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+.env
+*.csv
+*.parquet
+.DS_Store
+```
+(Adjust `*.csv` if you actually want small sample datasets tracked for a project — ignore raw/large data only.)
 
 ## `main` branch
 - Created automatically at your **first commit** (not at `git init` — no branch exists until history exists)
@@ -85,7 +144,9 @@ Prevents noise (like CRLF warnings on config files) and keeps repo clean of mach
 2. Editing an untracked (or staged-but-not-re-added) file is invisible to Git until you `add` again
 3. Staged snapshot is frozen at time of `add` — not a live link to the file
 4. `git add -A` stages the whole repo including deletes; `git add .` only from current folder down
-5. `.idea/`, `.env`, and other machine-specific/secret files should be in `.gitignore`, never tracked
-6. CRLF/LF warning is harmless — just Git normalizing line endings on Windows
-7. `main` branch is created at first commit, not at `git init`
-8. Branches are just pointers — merging brings a branch's changes back into `main`
+5. `add` = stage (local) → `commit` = save to local history → `push` = send to GitHub — three distinct steps, not one action
+6. `.gitignore` only blocks NEW files from being tracked — already-tracked files need `git rm -r --cached` to actually stop tracking
+7. `.idea/`, `.env`, large data files should always be in `.gitignore`, never tracked
+8. CRLF/LF warning is harmless — just Git normalizing line endings on Windows
+9. `main` branch is created at first commit, not at `git init`
+10. Branches are just pointers — merging brings a branch's changes back into `main`
