@@ -1,9 +1,4 @@
-# Git & GitHub
-Reference :
-Youtube : https://www.youtube.com/watch?v=Kr8l7rQGwNs&t=161s
-## What I learned
-
-# Day 1 — Why Git & What is a Repo
+# Day 1 — Git & GitHub Basics
 
 ## Why we use Git
 - Tracks changes to code/files over time — full history, not just the latest version
@@ -18,22 +13,79 @@ Youtube : https://www.youtube.com/watch?v=Kr8l7rQGwNs&t=161s
 - Two types:
   - **Local repo** — lives on your machine
   - **Remote repo** — lives on GitHub (or similar), acts as the shared/backup copy
-- A repo is NOT the same as a plain folder — a plain folder has no history tracking until you run `git init`
+- A plain folder is NOT a repo until you run `git init`
 
-## Quick mental model
-- Git = the tool/system that tracks versions
-- Repo = the project folder Git is tracking
-- GitHub = a website that hosts your repo remotely (so it's not just on your laptop)
+## `git init`
+- The first step — turns a plain folder into a Git repo
+- Creates a hidden `.git/` folder → this is where all tracking/history lives
+- Only local — does NOT connect to GitHub automatically (that's `git remote add origin <url>`, a separate step)
+- Doesn't commit anything by itself — files exist in the folder, but nothing is tracked yet
+- Run **once** per project
+
+## Tracking states — how a file actually becomes "tracked"
+Creating or editing a file does NOT mean Git is tracking it. Sequence:
+
+**Untracked → Staged (`git add`) → Committed (`git commit`) → Tracked going forward**
+
+- After `git init`, any new file you create shows as **untracked** — Git knows it exists, but records nothing about its content or changes
+- Editing an untracked file (even multiple times) is invisible to Git — no history, no diff, nothing recoverable
+- Once you `git add` a file, that exact content is frozen as a **staged snapshot** — it is NOT a live link to the file
+  - If you edit the file again after `add` but don't `add` again, the staged snapshot still holds the OLD version
+  - Committing at that point saves the old staged version, not your latest edit
+  - You must re-run `git add` to update the staged snapshot before committing
+- Only after `git commit` is a version permanently saved in history
+- Once a file has been committed at least once, Git automatically detects future edits and shows them as "modified" — but brand new files always start as untracked until explicitly `add`ed
+
+## `git status`
+Shows the current state of working directory + staging area. Three buckets:
+1. **Untracked files** — new, never staged/committed
+2. **Changes not staged for commit** — tracked files edited since last `add`
+3. **Changes to be committed** — staged (`add`ed), ready for next commit
+
+A file can appear in bucket 2 and 3 at once if it was staged, then edited again afterward.
+
+**Habit:** run `git status` before and after every `add`/`commit` — cheapest way to avoid committing the wrong thing.
+
+## Staging shortcuts (for multiple changed files)
+- `git add .` → stages everything (modified + new) from current folder downward
+- `git add -A` → stages everything in the WHOLE repo (modified + new + deleted), regardless of which folder you're in
+- `git add -u` → stages only already-tracked files (modified + deleted) — skips new/untracked files
+- ⚠️ Caution: `add .` / `-A` will stage everything, including files you don't want in Git (`.env`, credentials, large CSVs) — set up `.gitignore` before using these freely
+
+## Renamed / moved files
+- If a file's path changes (e.g., folder restructured) but content is same, Git shows it as delete (old path) + untracked (new path)
+- `git add -A` followed by `git status` will usually detect this correctly as a **rename**, not a real delete+create
+- Always verify every "deleted" entry has a matching "untracked" counterpart before committing, to confirm nothing was actually lost
+
+## LF vs CRLF warning
+- **LF** (`\n`) — Linux/Mac line ending, Git's internal standard
+- **CRLF** (`\r\n`) — Windows line ending
+- Warning like `LF will be replaced by CRLF` = Git auto-converting endings per `core.autocrlf` setting — harmless, not an error
+- On Windows, files are stored as LF in the repo but checked out as CRLF locally for compatibility
+
+## IDE config files (PyCharm `.idea/`) should NOT be tracked
+```
+echo ".idea/" >> .gitignore
+git rm -r --cached .idea
+git add .gitignore
+git commit -m "stop tracking IDE config files"
+```
+Prevents noise (like CRLF warnings on config files) and keeps repo clean of machine-specific settings.
+
+## `main` branch
+- Created automatically at your **first commit** (not at `git init` — no branch exists until history exists)
+- A branch = a movable pointer to a specific commit, nothing more
+- `main` = default branch name (older repos used `master`) — represents the stable, always-working line of history
+- Typical workflow: do risky/experimental work on a separate branch → merge back into `main` once it works → `main` stays stable throughout
+- For solo learning repos, committing straight to `main` is fine for now
+- For portfolio projects: feature branches + PRs merged into `main` is a strong signal to interviewers — shows real team workflow understanding
 
 ## What I'd forget in a week
-1. `git init` is what turns an ordinary folder into a repo
-2. `.git/` folder = history database, don't delete it
-3. Local repo ≠ remote repo — they sync via push/pull, not automatically
-4. A repo tracks the whole project's history, not just one file
-5. GitHub is hosting, Git is the underlying tool — they're not the same thing
-
-## What I'd forget in a week
--
-
-## Commands I keep forgetting
--
+1. `git init` = first step, creates `.git/`, does NOT connect to GitHub
+2. Editing an untracked (or staged-but-not-re-added) file is invisible to Git until you `add` again
+3. Staged snapshot is frozen at time of `add` — not a live link to the file
+4. `git add -A` stages the whole repo including deletes; `git add .` only from current folder down
+5. `.idea/`, `.env`, and other machine-specific/secret files should be in `.gitignore`, never tracked
+6. CRLF/LF warning is harmless — just Git normalizing line endings on Windows
+7. `main` branch is created at first commit, not at `git init`
+8. Branches are just pointers — merging brings a branch's changes back into `main`
