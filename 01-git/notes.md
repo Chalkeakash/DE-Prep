@@ -150,3 +150,5 @@ __pycache__/
 8. CRLF/LF warning is harmless — just Git normalizing line endings on Windows
 9. `main` branch is created at first commit, not at `git init`
 10. Branches are just pointers — merging brings a branch's changes back into `main`
+
+# JUST CHECKING
